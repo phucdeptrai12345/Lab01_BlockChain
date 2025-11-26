@@ -110,3 +110,17 @@ def validate_block(block: Block, expected_height: int, expected_parent_hash: str
         return False
 
     return True
+# Hàm tạo Genesis Block (Block đầu tiên)
+def create_genesis_block(chain_id: str) -> Block:
+    """
+    Tạo block nguyên thủy (Height = 0).
+    Block này không có transaction, parent_hash là chuỗi 0.
+    """
+    header = BlockHeader(
+        height=0,
+        parent_hash="0" * 64,
+        state_hash="0" * 64,
+        proposer="GENESIS",
+        signature=""
+    )
+    return Block(header=header, transactions=[])
