@@ -10,7 +10,8 @@ class VoteTrackingNode:
     - Đếm số PRECOMMIT nhận được (unique validator) để kiểm tra finalized.
     """
 
-    def __init__(self, node_id: str, peers: List[str], network: NetworkSimulator, height: int, block_hash: str):
+    def __init__(self, node_id: str, peers: List[str], network: NetworkSimulator,
+                 height: int, block_hash: str, consensus_log: List[Dict[str, Any]]):
         self.node_id = node_id
         self.peers = peers
         self.network = network
@@ -18,8 +19,17 @@ class VoteTrackingNode:
         self.block_hash = block_hash
         self.inbound: List[Dict[str, Any]] = []
         self.precommit_from: Set[str] = set()
+        self.consensus_log = consensus_log
 
         self.network.register_node(node_id, self.on_message)
+
+    def _log(self, event: str, details: Dict[str, Any]):
+        self.consensus_log.append({
+            "time_ms": self.network.now_ms,
+            "event": event,
+            "node": self.node_id,
+            **details,
+        })
 
     def on_message(self, msg: Dict[str, Any]):
         payload = msg.get("payload", {})
@@ -29,6 +39,19 @@ class VoteTrackingNode:
             voter = payload.get("from")
             if voter:
                 self.precommit_from.add(voter)
+        # Log receipt of proposal/vote
+        if payload.get("type") == "PROPOSAL":
+            self._log("CONSENSUS_PROPOSAL_RECV", {
+                "from": msg.get("from"),
+                "height": payload.get("height"),
+                "block_hash": payload.get("block_hash"),
+            })
+        elif payload.get("type") == "VOTE":
+            self._log(f"CONSENSUS_{payload.get('phase')}_RECV", {
+                "from": payload.get("from"),
+                "height": payload.get("height"),
+                "block_hash": payload.get("block_hash"),
+            })
 
     def broadcast_proposal(self):
         payload = {
@@ -36,6 +59,10 @@ class VoteTrackingNode:
             "block_hash": self.block_hash,
             "height": self.height,
         }
+        self._log("CONSENSUS_PROPOSAL_SEND", {
+            "height": self.height,
+            "block_hash": self.block_hash,
+        })
         for peer in self.peers + [self.node_id]:
             self.network.send_header(
                 sender=self.node_id,
@@ -53,6 +80,10 @@ class VoteTrackingNode:
             "block_hash": self.block_hash,
             "from": self.node_id,
         }
+        self._log(f"CONSENSUS_{phase}_SEND", {
+            "height": self.height,
+            "block_hash": self.block_hash,
+        })
         for peer in self.peers + [self.node_id]:
             self.network.send_header(
                 sender=self.node_id,
@@ -88,11 +119,13 @@ def run_consensus_smoke_simple(
     )
     net = NetworkSimulator(seed=seed, config=cfg)
 
+    consensus_log: List[Dict[str, Any]] = []
     node_ids = [str(i) for i in range(num_nodes)]
     nodes: Dict[str, VoteTrackingNode] = {}
     for nid in node_ids:
         peers = [p for p in node_ids if p != nid]
-        nodes[nid] = VoteTrackingNode(nid, peers, net, height=height, block_hash=block_hash)
+        nodes[nid] = VoteTrackingNode(nid, peers, net, height=height, block_hash=block_hash,
+                                      consensus_log=consensus_log)
 
     # Fully connected topology
     edges = [(a, b) for a in node_ids for b in node_ids if a != b]
@@ -118,10 +151,18 @@ def run_consensus_smoke_simple(
         for nid, n in nodes.items()
     }
     finalized_count = sum(1 for v in finalized.values() if v)
+    for nid, ok in finalized.items():
+        consensus_log.append({
+            "time_ms": net.now_ms,
+            "event": "CONSENSUS_FINALIZE" if ok else "CONSENSUS_NOT_FINAL",
+            "node": nid,
+            "height": height,
+            "block_hash": block_hash,
+        })
 
     return {
         "finalized": finalized,
         "finalized_count": finalized_count,
-        "logs": net.logs(),
+        "network_logs": net.logs(),
+        "consensus_logs": consensus_log,
     }
-

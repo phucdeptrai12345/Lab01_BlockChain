@@ -19,7 +19,7 @@ def main():
     res1 = run_consensus_smoke_simple(seed=2025)
     res2 = run_consensus_smoke_simple(seed=2025)
 
-    logs_equal = res1["logs"] == res2["logs"]
+    logs_equal = res1["network_logs"] == res2["network_logs"] and res1["consensus_logs"] == res2["consensus_logs"]
     finalized_ok = res1["finalized_count"] == res2["finalized_count"] == 4
 
     print("Finalized count run1:", res1["finalized_count"])
