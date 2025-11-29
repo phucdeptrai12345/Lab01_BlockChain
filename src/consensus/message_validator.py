@@ -1,6 +1,5 @@
-# message_validator.py
 from .types import Vote, Proposal, BlockHeader
-
+from .constants import ConsensusStep
 
 class MessageValidator:
     def __init__(self, chain_id: str):
@@ -14,7 +13,7 @@ class MessageValidator:
         if vote.height < 0 or vote.round < 0:
             return False
 
-        if vote.vote_type not in ["prevote", "precommit"]:
+        if vote.vote_type not in [ConsensusStep.PREVOTE, ConsensusStep.PRECOMMIT]:
             return False
 
         return True

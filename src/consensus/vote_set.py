@@ -1,13 +1,14 @@
 from collections import defaultdict
 from typing import Dict, List
 from .types import Vote
+from .constants import ConsensusStep
 
 class VoteSet:
     
     def __init__(self):
         self.votes: Dict[str, Dict[int, Dict[int, Dict[str, Vote]]]] = {
-            "prevote": defaultdict(lambda: defaultdict(dict)),
-            "precommit": defaultdict(lambda: defaultdict(dict))
+            ConsensusStep.PREVOTE: defaultdict(lambda: defaultdict(dict)),
+            ConsensusStep.PRECOMMIT : defaultdict(lambda: defaultdict(dict))
         }
 
     def has_vote(self, vote: Vote) -> bool:
