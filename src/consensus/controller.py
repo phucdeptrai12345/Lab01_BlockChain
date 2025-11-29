@@ -13,7 +13,7 @@ class ConsensusController:
         Khởi tạo bộ điều khiển đồng thuận.
         Args:
             node_id: Định danh của node hiện tại.
-            helper: Interface giao tiếp với module khác (Người B implementation).
+            helper: Interface giao tiếp với module khác (Helper implementation).
         """
         self.node_id = node_id
         self.helper = helper
@@ -31,7 +31,7 @@ class ConsensusController:
         """
         Hàm khởi động một vòng đồng thuận mới.
         """
-        print(f"--- [CONTROLLER] Bắt đầu Round {round_num} tại Height {self.current_height} ---")
+        print(f"--- [CONTROLLER] Starting Round {round_num} at Height {self.current_height} ---")
         
         # 1. Cập nhật trạng thái đầu vòng
         self.current_round = round_num
@@ -42,39 +42,39 @@ class ConsensusController:
         
         if proposer_id == self.node_id:
             # TRƯỜNG HỢP: TÔI LÀ PROPOSER
-            print(f"[{self.node_id}] Tôi là Proposer. Đang tạo đề xuất...")
+            print(f"[{self.node_id}] I am the Proposer. Creating proposal...")
             
-            # Logic: Nếu đang bị lock block nào đó, phải đề xuất lại block đó (Proof of Lock)
+            # Logic: Nếu đang bị lock block nào đó, phải đề xuất lại block đó (Proof of Lock).
             # Nếu không, tạo block mới từ pool giao dịch.
             if self.locked_block is not None:
                 proposal_block = self.locked_block
-                print(f"[{self.node_id}] Đề xuất lại Locked Block: {proposal_block.hash}")
+                print(f"[{self.node_id}] Re-proposing Locked Block: {proposal_block.hash}")
             else:
                 proposal_block = self.helper.create_proposal(self.current_height, self.current_round)
-                print(f"[{self.node_id}] Đề xuất Block mới: {proposal_block.hash}")
+                print(f"[{self.node_id}] Proposing New Block: {proposal_block.hash}")
 
             self.broadcast_proposal(proposal_block)
         
         else:
             # TRƯỜNG HỢP: TÔI LÀ VALIDATOR
-            print(f"[{self.node_id}] Chờ Proposal từ {proposer_id}...")
+            print(f"[{self.node_id}] Waiting for Proposal from {proposer_id}...")
             # Đặt hẹn giờ: Nếu quá thời gian mà không nhận được Proposal -> Vote NIL
             self.helper.schedule_timeout(TIMEOUT_PROPOSE, ConsensusStep.PROPOSE)
 
     def on_proposal_received(self, proposal_block: Any):
         """
-        Callback từ Người B: Khi nhận được một Proposal hợp lệ.
+        Callback từ Helper: Khi nhận được một Proposal hợp lệ.
         """
         # Chỉ xử lý nếu đang ở bước PROPOSE (tránh xử lý tin nhắn cũ/spam)
         if self.current_step != ConsensusStep.PROPOSE:
             return
 
-        # --- SAFETY RULE: LOCKING CHECK [cite: 72] ---
+        # --- SAFETY RULE: LOCKING CHECK ---
         vote_hash = proposal_block.hash
         
         # Nếu tôi đã khóa một block khác với block đang được đề xuất
         if self.locked_block is not None and self.locked_block.hash != proposal_block.hash:
-            print(f"[{self.node_id}] Proposal khác Locked Block -> Vote NIL")
+            print(f"[{self.node_id}] Proposal differs from Locked Block -> Vote NIL")
             vote_hash = NIL_BLOCK_HASH
         
         # Chuyển sang bước PREVOTE
@@ -88,22 +88,22 @@ class ConsensusController:
 
     def on_majority_prevote(self, majority_block_hash: str):
         """
-        Callback từ Người B: Khi đã thu thập đủ +2/3 phiếu PREVOTE.
+        Callback từ Helper: Khi đã thu thập đủ +2/3 phiếu PREVOTE.
         """
         # Chỉ xử lý khi đang ở bước PREVOTE
         if self.current_step != ConsensusStep.PREVOTE:
             return
 
-        print(f"[{self.node_id}] Đạt đa số PREVOTE cho: {majority_block_hash}")
+        print(f"[{self.node_id}] Majority PREVOTE reached for: {majority_block_hash}")
 
-        # --- SAFETY RULE: UPDATE LOCK [cite: 71] ---
+        # --- SAFETY RULE: UPDATE LOCK ---
         # Nếu đa số đồng ý một block thực (không phải NIL), tôi sẽ khóa vào nó
         if majority_block_hash != NIL_BLOCK_HASH:
             # Nhờ helper lấy object block đầy đủ từ hash
             block_obj = self.helper.get_block_by_hash(majority_block_hash)
             self.locked_block = block_obj
             self.locked_round = self.current_round
-            print(f"[{self.node_id}] Đã LOCK vào block {majority_block_hash}")
+            print(f"[{self.node_id}] LOCKED on block {majority_block_hash}")
 
         # Chuyển sang bước PRECOMMIT
         self.current_step = ConsensusStep.PRECOMMIT
@@ -116,13 +116,13 @@ class ConsensusController:
 
     def on_majority_precommit(self, majority_block_hash: str):
         """
-        Callback từ Người B: Khi đã thu thập đủ +2/3 phiếu PRECOMMIT.
+        Callback từ Helper: Khi đã thu thập đủ +2/3 phiếu PRECOMMIT.
         """
         if self.current_step != ConsensusStep.PRECOMMIT:
             return
         
         if majority_block_hash != NIL_BLOCK_HASH:
-            # --- HAPPY PATH: FINALIZATION [cite: 71, 78] ---
+            # --- HAPPY PATH: FINALIZATION ---
             print(f"[{self.node_id}] !!! CONSENSUS REACHED !!! Block {majority_block_hash} finalized.")
             
             # 1. Commit block vào Ledger
@@ -138,9 +138,9 @@ class ConsensusController:
             self.start_round(0)
             
         else:
-            # --- UNHAPPY PATH: ROUND CHANGE [cite: 73] ---
+            # --- UNHAPPY PATH: ROUND CHANGE ---
             # Đa số đồng ý là "không đồng ý gì cả" (NIL) -> Sang vòng sau
-            print(f"[{self.node_id}] Consensus thất bại (NIL). Chuyển sang Round {self.current_round + 1}")
+            print(f"[{self.node_id}] Consensus failed (NIL). Moving to Round {self.current_round + 1}")
             self.start_round(self.current_round + 1)
 
     def on_timeout(self, step: ConsensusStep):
@@ -151,7 +151,7 @@ class ConsensusController:
         if self.current_step != step:
             return
 
-        print(f"[{self.node_id}] !!! TIMEOUT tại bước {step.value} !!!")
+        print(f"[{self.node_id}] !!! TIMEOUT at step {step.value} !!!")
 
         if step == ConsensusStep.PROPOSE:
             # Hết giờ chờ Proposal -> Vote NIL và sang Prevote
