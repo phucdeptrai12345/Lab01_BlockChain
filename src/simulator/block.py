@@ -26,6 +26,10 @@ class Block:
     header: BlockHeader
     transactions: List[Dict[str, Any]] = field(default_factory=list)
 
+    @property
+    def hash(self) -> str:
+        return compute_block_hash(self.header)
+
 
 # -----------------------------
 # Compute block hash

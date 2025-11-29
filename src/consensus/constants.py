@@ -12,3 +12,14 @@ class ConsensusStep(enum.Enum):
 TIMEOUT_PROPOSE = 3.0
 TIMEOUT_PREVOTE = 2.0
 TIMEOUT_PRECOMMIT = 2.0
+
+# --- Domain Separation Contexts ---
+#  Use explicit context strings so signature valid for one message type 
+# cannot be reused for another.
+CONTEXT_TX = b"TX:2025"         # Dùng khi ký Transaction
+CONTEXT_HEADER = b"HEADER:2025" # Dùng khi ký Block Header (Proposal)
+CONTEXT_VOTE = b"VOTE:2025"     # Dùng khi ký Vote (Prevote/Precommit)
+
+# --- Special Values ---
+# Giá trị đại diện cho Hash rỗng hoặc Vote cho NIL
+NIL_BLOCK_HASH = "NIL"  # Hoặc dùng một chuỗi hash đặc biệt như "0000..."
