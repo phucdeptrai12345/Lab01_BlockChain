@@ -1,0 +1,27 @@
+"""
+Chạy mô phỏng full pipeline với 8 node, 3 block (demo).
+Kiểm tra state hash/ledger của tất cả node giống nhau.
+"""
+
+import os
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, ROOT)
+
+from tests.e2e.run_full_simulation import run_full_sim
+
+
+def main():
+    res = run_full_sim(num_nodes=8, num_blocks=3, seed=2025)
+    print("State hashes per node (8):", res["state_hashes"])
+    print("All nodes same state hash:", res["all_equal_state"])
+    if not res["all_equal_state"]:
+        print("Full simulation 8 nodes FAILED")
+        sys.exit(1)
+    print("Full simulation 8 nodes PASSED")
+
+
+if __name__ == "__main__":
+    main()
+
