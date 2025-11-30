@@ -210,6 +210,9 @@ def main():
     print("State hashes per node:", json.dumps(res["state_hashes"], indent=2))
     print("Ledgers per node:", json.dumps(res["ledgers"], indent=2))
     print("All nodes same state hash:", res["all_equal_state"])
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/full_simulation_state_hashes.log", "w", encoding="utf-8") as f:
+        f.write(json.dumps(res, indent=2))
 
 
 if __name__ == "__main__":

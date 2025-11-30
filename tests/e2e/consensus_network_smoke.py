@@ -22,6 +22,19 @@ def main():
     logs_equal = res1["network_logs"] == res2["network_logs"] and res1["consensus_logs"] == res2["consensus_logs"]
     finalized_ok = res1["finalized_count"] == res2["finalized_count"] == 4
 
+    # Ghi log ra file để tiện kiểm tra
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/consensus_network_smoke_run1.log", "w", encoding="utf-8") as f1:
+        for entry in res1["network_logs"]:
+            f1.write(f"{entry}\n")
+        for entry in res1["consensus_logs"]:
+            f1.write(f"{entry}\n")
+    with open("logs/consensus_network_smoke_run2.log", "w", encoding="utf-8") as f2:
+        for entry in res2["network_logs"]:
+            f2.write(f"{entry}\n")
+        for entry in res2["consensus_logs"]:
+            f2.write(f"{entry}\n")
+
     print("Finalized count run1:", res1["finalized_count"])
     print("Finalized count run2:", res2["finalized_count"])
     print("Logs identical:", logs_equal)

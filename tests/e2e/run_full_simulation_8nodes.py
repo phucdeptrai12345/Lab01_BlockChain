@@ -16,6 +16,9 @@ def main():
     res = run_full_sim(num_nodes=8, num_blocks=3, seed=2025)
     print("State hashes per node (8):", res["state_hashes"])
     print("All nodes same state hash:", res["all_equal_state"])
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/full_simulation_8nodes_state_hashes.log", "w", encoding="utf-8") as f:
+        f.write(str(res))
     if not res["all_equal_state"]:
         print("Full simulation 8 nodes FAILED")
         sys.exit(1)
@@ -24,4 +27,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
