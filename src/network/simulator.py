@@ -4,28 +4,32 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Set, Tuple, Any
 
+# Mô phỏng mạng không tin cậy: delay/jitter/drop/duplicate, rate limit, backpressure, auto block.
+# Dùng cho các kịch bản consensus/test để tạo điều kiện mạng xấu nhưng có log định danh.
 
-# Types for clarity
+
+# Kiểu định nghĩa cho rõ ràng
 MessageHandler = Callable[[Dict[str, Any]], None]
 
 
 @dataclass
 class NetworkConfig:
     """
-    Basic knobs for the unreliable network.
+    Bộ tham số cấu hình cho mạng không tin cậy.
+    Gộp các tham số delay/drop/throughput để dễ chỉnh trong test.
     """
-    base_delay_ms: int = 50  # minimum delay
-    jitter_ms: int = 100     # added randomness
-    drop_rate: float = 0.0   # probability [0,1]
-    duplicate_rate: float = 0.0  # probability [0,1] to duplicate a delivery
-    max_inflight_per_sender: int = 64  # simple rate limit
-    max_inflight_per_link: int = 32  # simple per-link limit
-    max_bytes_inflight_per_link: int = 1_000_000  # soft bandwidth cap
-    auto_block_inflight_threshold: int = 128  # auto block if inflight messages exceed
-    auto_block_duration_ms: int = 5000        # how long to auto block
-    link_bandwidth_bytes_per_ms: int = 50      # serialize sends on a link (throughput)
-    rate_window_ms: int = 1000                 # for rate-based auto blocking
-    max_msgs_per_link_per_window: Optional[int] = None  # if set, block when exceeded
+    base_delay_ms: int = 50  # độ trễ tối thiểu (ms)
+    jitter_ms: int = 100     # độ ngẫu nhiên thêm vào (ms)
+    drop_rate: float = 0.0   # xác suất rơi gói [0,1]
+    duplicate_rate: float = 0.0  # xác suất nhân đôi gói [0,1]
+    max_inflight_per_sender: int = 64  # giới hạn số gói đang bay mỗi sender
+    max_inflight_per_link: int = 32  # giới hạn số gói đang bay mỗi link (sender,receiver)
+    max_bytes_inflight_per_link: int = 1_000_000  # giới hạn mềm tổng byte đang bay trên link
+    auto_block_inflight_threshold: int = 128  # tự block nếu inflight vượt ngưỡng này
+    auto_block_duration_ms: int = 5000        # thời gian block tự động (ms)
+    link_bandwidth_bytes_per_ms: int = 50      # băng thông giả lập trên link (bytes/ms)
+    rate_window_ms: int = 1000                 # cửa sổ tính rate cho auto block
+    max_msgs_per_link_per_window: Optional[int] = None  # nếu đặt, block khi số gói trong cửa sổ vượt ngưỡng
 
 
 @dataclass(order=True)
@@ -37,11 +41,13 @@ class ScheduledMessage:
 
 class NetworkSimulator:
     """
-    Simulates an unreliable network:
-    - Messages delayed, duplicated, dropped.
-    - Headers must arrive before bodies (tracked by header_id).
-    - Per-sender inflight cap; extra messages are dropped.
-    - All events logged deterministically (seeded RNG).
+    Mô phỏng mạng không tin cậy:
+    - Gói có thể bị trễ, nhân đôi, rơi.
+    - Header phải tới trước body (theo dõi qua header_id).
+    - Giới hạn inflight per-sender/per-link; vượt ngưỡng sẽ drop hoặc queue.
+    - Tất cả sự kiện đều được log định danh (seed RNG cố định).
+    - Có backpressure theo bytes, auto block/unblock khi quá tải.
+    - Có thể tải topo và profile từ file để tái lập nhiều lần.
     """
 
     def __init__(self, seed: int = 0, config: Optional[NetworkConfig] = None):
@@ -55,26 +61,26 @@ class NetworkSimulator:
         self._inflight_count: Dict[str, int] = {}
         self._inflight_link: Dict[Tuple[str, str], int] = {}
         self._inflight_bytes_link: Dict[Tuple[str, str], int] = {}
-        # Track which receivers have seen headers to allow bodies
+        # Theo dõi receiver đã thấy header nào để cho phép body
         self._seen_headers: Dict[Tuple[str, str], bool] = {}
-        # Optional topology
+        # Topology tùy chọn (None = full mesh)
         self._allowed_edges: Optional[Set[Tuple[str, str]]] = None
         self._blocked_links: Set[Tuple[str, str]] = set()
         self._auto_blocked_until: Dict[Tuple[str, str], float] = {}
-        # Backpressure queue per link
+        # Hàng đợi backpressure theo link
         self._pending_link: Dict[Tuple[str, str], List[Tuple[Dict[str, Any], int]]] = {}
-        # Track serialization/throughput per link
+        # Theo dõi thời điểm link rảnh (phục vụ serialize theo băng thông)
         self._link_next_available_time: Dict[Tuple[str, str], float] = {}
-        # Optional per-link parameters (delay/jitter/bandwidth/drop)
+        # Profile per-link (delay/jitter/bandwidth/drop) nếu có
         self._link_profile: Dict[Tuple[str, str], Dict[str, Any]] = {}
-        # Rate tracking per link for auto block based on bursts
+        # Theo dõi rate theo cửa sổ thời gian cho auto block
         self._link_send_times: Dict[Tuple[str, str], deque] = {}
 
     # Public API -----------------------------------------------------
     def register_node(self, node_id: str, handler: MessageHandler) -> None:
         self.handlers[node_id] = handler
         self._inflight_count.setdefault(node_id, 0)
-        # Per-link counters created lazily
+        # Bộ đếm per-link sẽ được khởi tạo khi dùng
 
     def load_topology(self, edges: List[Tuple[str, str]]) -> None:
         """
@@ -187,7 +193,7 @@ class NetworkSimulator:
                 self._seen_headers[(receiver, msg["header_id"])] = True
 
             self._deliver(receiver, msg)
-            # After freeing capacity, try draining queued messages on this link
+            # Sau khi giải phóng dung lượng, thử bơm tiếp các gói đang queue trên link này
             self._drain_pending_link(link)
             delivered += 1
         return delivered
@@ -218,7 +224,7 @@ class NetworkSimulator:
         height = envelope.get("height")
         size_bytes = self._estimate_size(envelope)
 
-        # Clear expired auto-blocks for this link if any
+        # Kiểm tra và gỡ auto-block đã hết hạn (nếu có)
         self._maybe_auto_unblock(sender, receiver)
 
         if receiver not in self.handlers:
@@ -246,7 +252,7 @@ class NetworkSimulator:
 
         inflight_bytes = self._inflight_bytes_link.get(link, 0)
         if inflight_bytes + size_bytes > self.config.max_bytes_inflight_per_link:
-            # Backpressure: queue instead of drop
+            # Backpressure: xếp hàng thay vì drop nếu vượt ngưỡng bytes
             q = self._pending_link.setdefault(link, [])
             q.append((envelope, size_bytes))
             self._log_event("backpressure_queue", sender, receiver, height, {
@@ -280,13 +286,13 @@ class NetworkSimulator:
             self._log_event("drop_random", sender, receiver, height, envelope)
             return
 
-        # All checks passed -> schedule
+        # Qua được mọi kiểm tra -> schedule gửi
         self._schedule_envelope(sender, receiver, envelope, size_bytes, inflight, inflight_link, height)
 
     def _schedule_envelope(self, sender: str, receiver: str, envelope: Dict[str, Any],
                            size_bytes: int, inflight_sender: int,
                            inflight_link: int, height: Optional[int]) -> None:
-        # Serialize sends on link based on bandwidth
+        # Serialize gửi theo băng thông link
         link = (sender, receiver)
         params = self._get_link_params(link)
         start_time = max(self.now_ms, self._link_next_available_time.get(link, self.now_ms))
@@ -319,7 +325,7 @@ class NetworkSimulator:
             "envelope": envelope,
         })
 
-        # Optional duplication counts against limits
+        # Nếu nhân đôi gói, vẫn tính vào hạn mức
         if self.rng.random() < self.config.duplicate_rate:
             dup_delay = delay + self.rng.randint(0, self.config.jitter_ms)
             dup = ScheduledMessage(deliver_at=self.now_ms + dup_delay,
@@ -422,7 +428,7 @@ class NetworkSimulator:
             return False
         window = self.config.rate_window_ms
         q = self._link_send_times.setdefault(link, deque())
-        # Remove old timestamps
+        # Xóa timestamp cũ vượt cửa sổ rate
         while q and self.now_ms - q[0] > window:
             q.popleft()
         if len(q) >= self.config.max_msgs_per_link_per_window:

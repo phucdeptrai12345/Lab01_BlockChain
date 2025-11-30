@@ -7,6 +7,7 @@ from src.network.simulator import NetworkSimulator, NetworkConfig
 
 
 def test_duplicate_delivery():
+    # Ép duplicate_rate=1 để chắc chắn tạo bản sao và log duplicate
     cfg = NetworkConfig(
         base_delay_ms=0,
         jitter_ms=0,
@@ -31,6 +32,7 @@ def test_duplicate_delivery():
 
 
 def test_drop_random():
+    # Ép drop_rate=1 để đảm bảo gói bị loại và log drop_random
     cfg = NetworkConfig(
         base_delay_ms=0,
         jitter_ms=0,
@@ -57,4 +59,3 @@ if __name__ == "__main__":
     test_duplicate_delivery()
     test_drop_random()
     print("duplicate/drop tests passed")
-

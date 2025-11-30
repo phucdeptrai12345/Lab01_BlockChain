@@ -7,6 +7,8 @@ class SimNode:
     """
     Minimal node wrapper to show integration with NetworkSimulator.
     This does NOT implement consensus; it only demonstrates send/receive wiring.
+    Dùng để ví dụ cách đăng ký handler và broadcast header/body.
+    Mỗi node tự lưu inbound messages để người dùng kiểm tra.
     """
 
     def __init__(self, node_id: str, network: NetworkSimulator, peers: List[str]):
@@ -30,4 +32,3 @@ class SimNode:
 
     def send_body(self, peer: str, header_id: str, height: int, payload: Dict[str, Any]) -> None:
         self.network.send_body(self.node_id, peer, header_id, height, payload)
-

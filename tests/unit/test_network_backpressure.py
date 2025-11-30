@@ -7,6 +7,7 @@ from src.network.simulator import NetworkSimulator, NetworkConfig
 
 
 def main():
+    # Demo backpressure + auto-block: cấu hình bandwidth nhỏ, threshold thấp
     cfg = NetworkConfig(
         base_delay_ms=10,
         jitter_ms=0,
@@ -28,17 +29,17 @@ def main():
     net.register_node("A", handler)
     net.register_node("B", handler)
 
-    # Backpressure: first send goes through, second queued until capacity frees
+    # Backpressure: gói đầu đi qua, gói thứ hai bị queue tới khi link rảnh
     net.send_header("A", "B", header_id="h1", height=1, payload={"data": "x" * 50})
     net.send_header("A", "B", header_id="h1b", height=1, payload={"data": "y" * 50})
     net.run_until_idle()
 
-    # Auto block: second in-flight on same link triggers auto block, drop immediate send
+    # Auto block: inflight thứ hai trên link kích hoạt auto block, gói tiếp bị chặn
     net.send_header("A", "B", header_id="h2", height=2, payload={"data": "a" * 10})
     net.send_header("A", "B", header_id="h3", height=3, payload={"data": "b" * 10})  # should auto-block
     net.run_until_idle()  # deliver h2
 
-    # After auto block expires, send another header to confirm auto-unblock
+    # Hết thời gian block, gửi lại để xác nhận auto-unblock
     net.advance_time(60)
     net.send_header("A", "B", header_id="h4", height=4, payload={"data": "c" * 10})
     net.run_until_idle()

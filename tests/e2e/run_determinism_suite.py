@@ -2,6 +2,7 @@
 Chạy toàn bộ các bài kiểm tra determinism cho mục 8:
 - determinism_check (tx/state)
 - determinism_consensus_network (consensus+network smoke)
+- Diff file log giữa 2 lần chạy (nếu tồn tại)
 
 Sử dụng:
     python tests/e2e/run_determinism_suite.py
@@ -9,6 +10,8 @@ Sử dụng:
 
 import subprocess
 import sys
+from pathlib import Path
+import filecmp
 
 
 def run_cmd(cmd: str) -> None:
@@ -29,9 +32,6 @@ def main():
         run_cmd(cmd)
 
     # So sánh file log nếu tồn tại
-    from pathlib import Path
-    import filecmp
-
     pairs = [
         ("logs/determinism_run1.log", "logs/determinism_run2.log"),
         ("logs/consensus_network_smoke_run1.log", "logs/consensus_network_smoke_run2.log"),
@@ -49,3 +49,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

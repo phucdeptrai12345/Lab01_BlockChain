@@ -1,5 +1,5 @@
 """
-Smoke + determinism check cho 8 node (mục 5 yêu cầu tối thiểu 8 node).
+Smoke + kiểm tra determinism cho 8 node (yêu cầu tối thiểu 8 node).
 Chạy 2 lần với cùng seed, so sánh network_logs và consensus_logs, finalized_count phải bằng 8.
 """
 
@@ -13,6 +13,7 @@ from src.simulator.harness import run_consensus_smoke_simple
 
 
 def main():
+    # Chạy 8 node 2 lần với cùng seed để kiểm tra log deterministic
     res1 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
     res2 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
 
@@ -45,3 +46,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

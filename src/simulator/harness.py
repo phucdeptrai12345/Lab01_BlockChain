@@ -5,7 +5,7 @@ from src.network.simulator import NetworkSimulator, NetworkConfig
 
 class VoteTrackingNode:
     """
-    Node dùng để mô phỏng gửi/nhận vote qua NetworkSimulator.
+    Node mô phỏng gửi/nhận vote qua NetworkSimulator.
     - Lưu inbound messages.
     - Đếm số PRECOMMIT nhận được (unique validator) để kiểm tra finalized.
     """
@@ -39,7 +39,7 @@ class VoteTrackingNode:
             voter = payload.get("from")
             if voter:
                 self.precommit_from.add(voter)
-        # Log receipt of proposal/vote
+        # Log nhận proposal/vote
         if payload.get("type") == "PROPOSAL":
             self._log("CONSENSUS_PROPOSAL_RECV", {
                 "from": msg.get("from"),
@@ -127,7 +127,7 @@ def run_consensus_smoke_simple(
         nodes[nid] = VoteTrackingNode(nid, peers, net, height=height, block_hash=block_hash,
                                       consensus_log=consensus_log)
 
-    # Fully connected topology
+    # Topology full mesh
     edges = [(a, b) for a in node_ids for b in node_ids if a != b]
     net.load_topology(edges)
 
@@ -166,3 +166,4 @@ def run_consensus_smoke_simple(
         "network_logs": net.logs(),
         "consensus_logs": consensus_log,
     }
+

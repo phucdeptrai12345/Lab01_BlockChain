@@ -7,7 +7,7 @@ from src.network.simulator import NetworkSimulator, NetworkConfig
 
 
 def main():
-    # Deterministic run
+    # Chạy thử determinism (seed cố định) cho luồng header/body cơ bản
     cfg = NetworkConfig(
         base_delay_ms=10,
         jitter_ms=0,
@@ -26,24 +26,24 @@ def main():
     net.register_node("A", handler)
     net.register_node("B", handler)
 
-    # Restrict topology: only A->B allowed (B->A will drop)
+    # Restrict topology: only A->B allowed (B->A sẽ bị drop)
     net.load_topology([("A", "B")])
 
     # This should drop because topology disallows B->A
     net.send_header("B", "A", header_id="z0", height=0, payload={"hdr": 0})
 
-    # Body without header -> rejected and not delivered
+    # Body gửi trước header -> bị từ chối
     net.send_body("A", "B", header_id="h1", height=1, payload={"body": 123})
 
-    # Send header then deliver it
+    # Gửi header rồi deliver
     net.send_header("A", "B", header_id="h1", height=1, payload={"hdr": 1})
     net.run_until_idle()
 
-    # Now body is allowed (header seen)
+    # Giờ body được chấp nhận vì header đã tới
     net.send_body("A", "B", header_id="h1", height=1, payload={"body": 123})
     net.run_until_idle()
 
-    # Block the link and see drop
+    # Block link để xem gói bị drop
     net.block_link("A", "B")
     net.send_header("A", "B", header_id="h2", height=2, payload={"hdr": 2})
     net.advance_time(50)

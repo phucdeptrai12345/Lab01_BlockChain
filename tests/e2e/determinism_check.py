@@ -1,9 +1,9 @@
 """
-Run the same deterministic scenario twice and verify:
-- Logs are byte-identical.
-- Final state hash is identical.
+Chạy cùng một kịch bản 2 lần và kiểm tra:
+- Log giống hệt (byte-identical).
+- State hash giống hệt.
 
-Usage:
+Sử dụng:
     python tests/e2e/determinism_check.py
 """
 
@@ -20,7 +20,7 @@ from src.network.simulator import NetworkConfig, NetworkSimulator
 from src.state.state import State, apply_transaction
 
 
-# Fixed Ed25519 test vector (RFC 8032) to avoid nondeterministic key generation.
+# Vector khóa Ed25519 cố định (RFC 8032) để tránh ngẫu nhiên sinh khóa
 ALICE_PRIV_HEX = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
 ALICE_PUB_HEX = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
 CHAIN_ID = "determinism-test"
@@ -125,4 +125,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

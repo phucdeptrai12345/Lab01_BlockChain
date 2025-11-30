@@ -1,6 +1,6 @@
 """
 Chạy một vòng consensus smoke trên NetworkSimulator:
-- 4 node, fully-connected, proposer node 0.
+- 4 node, full-mesh, proposer node 0.
 - Proposal -> prevote -> precommit -> finalize.
 - Kiểm tra chỉ có 1 block được finalize và log deterministic qua 2 lần chạy.
 """
@@ -15,7 +15,7 @@ from src.simulator.harness import run_consensus_smoke_simple
 
 
 def main():
-    # Run twice with cùng seed để kiểm tra log deterministic
+    # Chạy 2 lần với cùng seed để kiểm tra log deterministic (4 node)
     res1 = run_consensus_smoke_simple(seed=2025)
     res2 = run_consensus_smoke_simple(seed=2025)
 
@@ -46,3 +46,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

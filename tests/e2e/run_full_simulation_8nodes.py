@@ -13,6 +13,7 @@ from tests.e2e.run_full_simulation import run_full_sim
 
 
 def main():
+    # Chạy mô phỏng 8 node, 3 block (pipeline đơn giản không verify chữ ký)
     res = run_full_sim(num_nodes=8, num_blocks=3, seed=2025)
     print("State hashes per node (8):", res["state_hashes"])
     print("All nodes same state hash:", res["all_equal_state"])

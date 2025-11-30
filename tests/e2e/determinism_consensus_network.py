@@ -1,5 +1,5 @@
 """
-Determinism check cho consensus smoke qua mạng:
+Kiểm tra determinism cho consensus smoke qua mạng:
 - Chạy run_consensus_smoke_simple 2 lần với cùng seed.
 - So sánh network_logs, consensus_logs và finalized_count.
 """
@@ -33,4 +33,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

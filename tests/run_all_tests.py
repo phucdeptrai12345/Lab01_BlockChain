@@ -1,21 +1,18 @@
 """
-Entry point to run all available tests/scripts for determinism and logging.
+Điểm chạy chung cho các script kiểm thử determinism và logging.
+Thứ tự chạy:
+1) Determinism suite (tx/state + consensus/network).
+2) Consensus network smoke (4 node) và 8-node.
+3) Full simulation smoke (4 node) và 8-node.
 
-Runs, in order:
-1) Unit tests (unittest discover under tests/unit).
-2) Determinism suite (tests/e2e/run_determinism_suite.py).
-3) Consensus network smoke (4 node) and 8-node smoke.
-4) Full simulation smoke (4 node) and 8-node variant.
-
-Usage:
-    python run_all_tests.py
+Sử dụng:
+    python tests/run_all_tests.py
 """
 
 import subprocess
 import sys
 
-
-# Danh sách lệnh cần chạy. Lưu ý: bỏ discover unit vì hiện chưa có TestCase dạng unittest.
+# Danh sách lệnh cần chạy. Lưu ý: bỏ discover unit vì hiện chưa có TestCase unittest.
 COMMANDS = [
     "python tests/e2e/run_determinism_suite.py",
     "python tests/e2e/consensus_network_smoke.py",
@@ -26,6 +23,7 @@ COMMANDS = [
 
 
 def run_cmd(cmd: str):
+    # Chạy lệnh shell; lỗi thì dừng ngay
     print(f"==> Running: {cmd}")
     result = subprocess.run(cmd, shell=True)
     if result.returncode != 0:
@@ -42,3 +40,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

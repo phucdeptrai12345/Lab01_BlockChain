@@ -8,6 +8,7 @@ from src.simulator.node import SimNode
 
 
 def main():
+    # Minh họa topo A->B->C: header forward, body reject/accept
     cfg = NetworkConfig(
         base_delay_ms=5,
         jitter_ms=0,
@@ -24,7 +25,7 @@ def main():
     node_b = SimNode("B", net, peers=["A", "C"])
     node_c = SimNode("C", net, peers=["A", "B"])
 
-    # A broadcasts header to B (only allowed edge), then B forwards body to C after receiving header
+    # A broadcast header tới B (edge hợp lệ), B thử gửi body tới C (bị reject vì chưa thấy header), sau đó forward header rồi body
     node_a.broadcast_header("h1", 1, {"hdr": "from A"})
     net.run_until_idle()  # deliver A->B header
 
@@ -47,4 +48,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

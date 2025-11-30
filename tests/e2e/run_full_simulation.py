@@ -205,7 +205,7 @@ def run_full_sim(num_nodes: int = 4, num_blocks: int = 3, seed: int = 2025):
 
 
 def main():
-    # Có thể chỉnh num_nodes và num_blocks tại đây để thử 8 node
+    # Có thể chỉnh num_nodes và num_blocks tại đây để thử 8 node; smoke test pipeline đơn giản
     res = run_full_sim(num_nodes=4, num_blocks=3, seed=2025)
     print("State hashes per node:", json.dumps(res["state_hashes"], indent=2))
     print("Ledgers per node:", json.dumps(res["ledgers"], indent=2))
