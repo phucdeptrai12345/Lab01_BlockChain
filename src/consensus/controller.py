@@ -1,22 +1,25 @@
 from typing import Optional, Any
 from src.consensus.constants import (
-    ConsensusStep, 
-    TIMEOUT_PROPOSE, 
-    TIMEOUT_PREVOTE, 
-    TIMEOUT_PRECOMMIT, 
-    NIL_BLOCK_HASH
+    ConsensusStep,
+    TIMEOUT_PROPOSE,
+    TIMEOUT_PREVOTE,
+    TIMEOUT_PRECOMMIT,
+    NIL_BLOCK_HASH,
 )
 
+
 class ConsensusController:
-    def __init__(self, node_id: str, helper: Any):
+    def __init__(self, node_id: str, helper: Any, auto_advance: bool = True):
         """
         Khởi tạo bộ điều khiển đồng thuận.
         Args:
             node_id: Định danh của node hiện tại.
             helper: Interface giao tiếp với module khác (Helper implementation).
+            auto_advance: Sau khi finalize block, có tự động start_round cho height mới không.
         """
         self.node_id = node_id
         self.helper = helper
+        self.auto_advance = auto_advance
 
         # --- State Variables ---
         self.current_height: int = 1
@@ -32,18 +35,18 @@ class ConsensusController:
         Hàm khởi động một vòng đồng thuận mới.
         """
         print(f"--- [CONTROLLER] Starting Round {round_num} at Height {self.current_height} ---")
-        
+
         # 1. Cập nhật trạng thái đầu vòng
         self.current_round = round_num
         self.current_step = ConsensusStep.PROPOSE
-        
+
         # 2. Xác định Proposer (Người B cung cấp logic tính toán)
         proposer_id = self.helper.get_proposer(self.current_height, self.current_round)
-        
+
         if proposer_id == self.node_id:
             # TRƯỜNG HỢP: TÔI LÀ PROPOSER
             print(f"[{self.node_id}] I am the Proposer. Creating proposal...")
-            
+
             # Logic: Nếu đang bị lock block nào đó, phải đề xuất lại block đó (Proof of Lock).
             # Nếu không, tạo block mới từ pool giao dịch.
             if self.locked_block is not None:
@@ -54,7 +57,7 @@ class ConsensusController:
                 print(f"[{self.node_id}] Proposing New Block: {proposal_block.hash}")
 
             self.broadcast_proposal(proposal_block)
-        
+
         else:
             # TRƯỜNG HỢP: TÔI LÀ VALIDATOR
             print(f"[{self.node_id}] Waiting for Proposal from {proposer_id}...")
@@ -71,18 +74,18 @@ class ConsensusController:
 
         # --- SAFETY RULE: LOCKING CHECK ---
         vote_hash = proposal_block.hash
-        
+
         # Nếu tôi đã khóa một block khác với block đang được đề xuất
         if self.locked_block is not None and self.locked_block.hash != proposal_block.hash:
             print(f"[{self.node_id}] Proposal differs from Locked Block -> Vote NIL")
             vote_hash = NIL_BLOCK_HASH
-        
+
         # Chuyển sang bước PREVOTE
         self.current_step = ConsensusStep.PREVOTE
-        
+
         # Gửi phiếu PREVOTE
         self.broadcast_vote(ConsensusStep.PREVOTE, vote_hash)
-        
+
         # Đặt hẹn giờ cho bước PREVOTE
         self.helper.schedule_timeout(TIMEOUT_PREVOTE, ConsensusStep.PREVOTE)
 
@@ -107,10 +110,10 @@ class ConsensusController:
 
         # Chuyển sang bước PRECOMMIT
         self.current_step = ConsensusStep.PRECOMMIT
-        
+
         # Gửi phiếu PRECOMMIT (Vote cho cái mà đa số đã chọn)
         self.broadcast_vote(ConsensusStep.PRECOMMIT, majority_block_hash)
-        
+
         # Đặt hẹn giờ cho bước PRECOMMIT
         self.helper.schedule_timeout(TIMEOUT_PRECOMMIT, ConsensusStep.PRECOMMIT)
 
@@ -120,23 +123,24 @@ class ConsensusController:
         """
         if self.current_step != ConsensusStep.PRECOMMIT:
             return
-        
+
         if majority_block_hash != NIL_BLOCK_HASH:
             # --- HAPPY PATH: FINALIZATION ---
             print(f"[{self.node_id}] !!! CONSENSUS REACHED !!! Block {majority_block_hash} finalized.")
-            
+
             # 1. Commit block vào Ledger
             block_obj = self.helper.get_block_by_hash(majority_block_hash)
             self.helper.commit_block(block_obj)
-            
+
             # 2. Reset trạng thái Lock (đã xong việc, mở khóa)
             self.locked_block = None
             self.locked_round = -1
-            
-            # 3. Tăng Height và bắt đầu Height mới
+
+            # 3. Tăng Height và bắt đầu Height mới nếu cho phép auto
             self.current_height += 1
-            self.start_round(0)
-            
+            if self.auto_advance:
+                self.start_round(0)
+
         else:
             # --- UNHAPPY PATH: ROUND CHANGE ---
             # Đa số đồng ý là "không đồng ý gì cả" (NIL) -> Sang vòng sau
@@ -181,5 +185,6 @@ class ConsensusController:
                 height=self.current_height,
                 round=self.current_round,
                 vote_type=vote_type,
-                block_hash=block_hash
+                block_hash=block_hash,
             )
+
