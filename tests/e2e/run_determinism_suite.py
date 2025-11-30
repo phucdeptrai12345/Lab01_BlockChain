@@ -27,9 +27,25 @@ def main():
     ]
     for cmd in commands:
         run_cmd(cmd)
+
+    # So sánh file log nếu tồn tại
+    from pathlib import Path
+    import filecmp
+
+    pairs = [
+        ("logs/determinism_run1.log", "logs/determinism_run2.log"),
+        ("logs/consensus_network_smoke_run1.log", "logs/consensus_network_smoke_run2.log"),
+        ("logs/consensus_network_smoke_8_run1.log", "logs/consensus_network_smoke_8_run2.log"),
+    ]
+    for a, b in pairs:
+        pa, pb = Path(a), Path(b)
+        if pa.exists() and pb.exists():
+            same = filecmp.cmp(pa, pb, shallow=False)
+            print(f"Diff {a} vs {b}: {'IDENTICAL' if same else 'DIFFERENT'}")
+            if not same:
+                sys.exit(1)
     print("Determinism suite PASSED.")
 
 
 if __name__ == "__main__":
     main()
-

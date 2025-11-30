@@ -16,6 +16,19 @@ def main():
     res1 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
     res2 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
 
+    # Ghi log ra file
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/consensus_network_smoke_8_run1.log", "w", encoding="utf-8") as f1:
+        for entry in res1["network_logs"]:
+            f1.write(f"{entry}\n")
+        for entry in res1["consensus_logs"]:
+            f1.write(f"{entry}\n")
+    with open("logs/consensus_network_smoke_8_run2.log", "w", encoding="utf-8") as f2:
+        for entry in res2["network_logs"]:
+            f2.write(f"{entry}\n")
+        for entry in res2["consensus_logs"]:
+            f2.write(f"{entry}\n")
+
     same_network = res1["network_logs"] == res2["network_logs"]
     same_consensus = res1["consensus_logs"] == res2["consensus_logs"]
     same_finalized = res1["finalized_count"] == res2["finalized_count"] == 8
@@ -32,4 +45,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
