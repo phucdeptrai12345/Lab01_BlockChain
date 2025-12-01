@@ -9,6 +9,7 @@ class State:
     """
     def __init__(self):
         self.data = {}
+        self.nonces = {}
 
     def get(self, key, default=None):
         return self.data.get(key, default)
@@ -40,6 +41,12 @@ def apply_transaction(state: State, tx: dict, chain_id: str,
     sender = tx["sender"]
     key = tx["key"]
     value = tx["value"]
+    nonce = tx.get("nonce", None)
+
+    last_nonce = state.nonces.get(sender, 0)
+    if nonce is None or nonce != last_nonce + 1:
+        print(f"Invalid nonce for {sender}: got {nonce}, expected {last_nonce + 1}")
+        return False
 
     # 2. Rule ownership: key phải bắt đầu bằng "sender/"
     if not key.startswith(sender + "/"):
@@ -48,4 +55,5 @@ def apply_transaction(state: State, tx: dict, chain_id: str,
 
     # 3. Cập nhật state
     state.set(key, value)
+    state.nonces[sender] = nonce
     return True
