@@ -1,6 +1,7 @@
 """
 Smoke + kiểm tra determinism cho 8 node (yêu cầu tối thiểu 8 node).
-Chạy 2 lần với cùng seed, so sánh network_logs và consensus_logs, finalized_count phải bằng 8.
+Chạy 2 lần với cùng seed, dùng topo/profile từ thư mục config, so sánh network_logs,
+consensus_logs, finalized_count phải bằng 8.
 """
 
 import os
@@ -13,9 +14,21 @@ from src.simulator.harness import run_consensus_smoke_simple
 
 
 def main():
-    # Chạy 8 node 2 lần với cùng seed để kiểm tra log deterministic
-    res1 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
-    res2 = run_consensus_smoke_simple(num_nodes=8, seed=8888)
+    # Chạy 8 node 2 lần với cùng seed, nạp topology/profile từ file CSV trong config
+    topo = os.path.join(ROOT, "config", "topology_8nodes_fullmesh.csv")
+    profile = os.path.join(ROOT, "config", "link_profile_8nodes_uniform.csv")
+    res1 = run_consensus_smoke_simple(
+        num_nodes=8,
+        seed=8888,
+        topology_file=topo,
+        link_profile_file=profile,
+    )
+    res2 = run_consensus_smoke_simple(
+        num_nodes=8,
+        seed=8888,
+        topology_file=topo,
+        link_profile_file=profile,
+    )
 
     # Ghi log ra file
     os.makedirs("logs", exist_ok=True)
@@ -46,4 +59,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
