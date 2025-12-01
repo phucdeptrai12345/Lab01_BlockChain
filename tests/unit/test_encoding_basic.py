@@ -46,16 +46,16 @@ def test_encode_tx_chain_id_affects_bytes():
 
 
 def main():
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("RUNNING ENCODING TEST SUITE WITH DETAILED OUTPUT")
-    print("#" * 80)
+    print("-" * 80)
 
     test_canonical_json_deterministic()
     test_encode_tx_chain_id_affects_bytes()
 
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("test_encoding_basic: ALL TESTS PASSED SUCCESSFULLY")
-    print("#" * 80)
+    print("-" * 80)
 
 
 if __name__ == "__main__":

@@ -77,13 +77,16 @@ def test_domain_separation_tx_header_vote():
         "proposer": "Alice",
     }
     header_bytes = encode_header_for_signing(header, CHAIN_ID)
-    vote_bytes = encode_vote_for_signing(
-        validator_id="Alice",
-        height=1,
-        block_hash="X" * 64,
-        phase="prevote",
-        chain_id=CHAIN_ID,
-    )
+    vote = {
+    "voter": "Alice",
+    "height": 1,
+    "round": 0,
+    "block_hash": "X" * 64,
+    "phase": "PREVOTE",
+}
+
+    vote_bytes = encode_vote_for_signing(vote, CHAIN_ID)
+
 
     print("TX bytes (for signing):", tx_bytes)
     print("HEADER bytes (for signing):", header_bytes)
@@ -106,17 +109,17 @@ def test_domain_separation_tx_header_vote():
 
 
 def main():
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("RUNNING CRYPTO TEST SUITE WITH DETAILED OUTPUT")
-    print("#" * 80)
+    print("-" * 80)
 
     test_raw_sign_and_verify()
     test_wrong_public_key_fails()
     test_domain_separation_tx_header_vote()
 
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("test_crypto_basic: ALL TESTS PASSED SUCCESSFULLY")
-    print("#" * 80)
+    print("-" * 80)
 
 
 if __name__ == "__main__":

@@ -91,18 +91,18 @@ def test_block_hash_deterministic():
 
 
 def main():
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("RUNNING BLOCK TEST SUITE WITH DETAILED OUTPUT")
-    print("#" * 80)
+    print("-" * 80)
 
     test_block_header_signature_ok()
     test_block_header_tamper_after_sign_fails()
     test_validate_block_height_and_parent()
     test_block_hash_deterministic()
 
-    print("\n" + "#" * 80)
+    print("\n" + "-" * 80)
     print("test_block_basic: ALL TESTS PASSED SUCCESSFULLY")
-    print("#" * 80)
+    print("-" * 80)
 
 
 if __name__ == "__main__":

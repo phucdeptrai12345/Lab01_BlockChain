@@ -4,9 +4,6 @@ from src.crypto.signing import verify_signature
 
 
 class State:
-    """
-    Trạng thái toàn hệ thống: map key -> value.
-    """
     def __init__(self):
         self.data = {}
         self.nonces = {}
@@ -18,20 +15,12 @@ class State:
         self.data[key] = value
 
     def compute_state_hash(self) -> str:
-        """
-        Hash toàn bộ state bằng canonical JSON + SHA-256.
-        """
         state_bytes = canonical_json(self.data)
         return hashlib.sha256(state_bytes).hexdigest()
 
 
 def apply_transaction(state: State, tx: dict, chain_id: str,
                       sender_pubkey: bytes, signature: bytes) -> bool:
-    """
-    Áp dụng 1 transaction vào state nếu:
-    - chữ ký hợp lệ
-    - key thuộc về sender (vd: "Alice/..." chỉ Alice sửa)
-    """
     # 1. Verify chữ ký
     msg = encode_tx_for_signing(tx, chain_id)
     if not verify_signature(sender_pubkey, msg, signature):
