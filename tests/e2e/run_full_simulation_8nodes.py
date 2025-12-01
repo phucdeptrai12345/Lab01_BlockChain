@@ -1,6 +1,6 @@
 """
 Chạy mô phỏng full pipeline với 8 node, 3 block (demo).
-Kiểm tra state hash/ledger của tất cả node giống nhau.
+Kiểm tra state hash/ledger của tất cả node giống nhau, dùng topo/profile từ thư mục config.
 """
 
 import os
@@ -13,8 +13,16 @@ from tests.e2e.run_full_simulation import run_full_sim
 
 
 def main():
-    # Chạy mô phỏng 8 node, 3 block (pipeline đơn giản không verify chữ ký)
-    res = run_full_sim(num_nodes=8, num_blocks=3, seed=2025)
+    # Chạy mô phỏng 8 node, 3 block, nạp topo/profile để bám yêu cầu cấu hình từ file
+    topo = os.path.join(ROOT, "config", "topology_8nodes_fullmesh.csv")
+    profile = os.path.join(ROOT, "config", "link_profile_8nodes_uniform.csv")
+    res = run_full_sim(
+        num_nodes=8,
+        num_blocks=3,
+        seed=2025,
+        topology_file=topo,
+        link_profile_file=profile,
+    )
     print("State hashes per node (8):", res["state_hashes"])
     print("All nodes same state hash:", res["all_equal_state"])
     os.makedirs("logs", exist_ok=True)

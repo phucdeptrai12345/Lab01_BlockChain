@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Set
+from typing import Dict, List, Any, Set, Optional
 
 from src.network.simulator import NetworkSimulator, NetworkConfig
 
@@ -99,6 +99,8 @@ def run_consensus_smoke_simple(
     height: int = 1,
     block_hash: str = "hash_cua_block_so_1",
     seed: int = 123,
+    topology_file: Optional[str] = None,
+    link_profile_file: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Smoke test consensus flow qua NetworkSimulator (không dùng engine phức tạp):
@@ -127,9 +129,15 @@ def run_consensus_smoke_simple(
         nodes[nid] = VoteTrackingNode(nid, peers, net, height=height, block_hash=block_hash,
                                       consensus_log=consensus_log)
 
-    # Topology full mesh
-    edges = [(a, b) for a in node_ids for b in node_ids if a != b]
-    net.load_topology(edges)
+    # Topology: nếu cung cấp file thì nạp; ngược lại mặc định full-mesh
+    if topology_file:
+        net.load_topology_from_file(topology_file)
+    else:
+        edges = [(a, b) for a in node_ids for b in node_ids if a != b]
+        net.load_topology(edges)
+    # Profile per-link (delay/bandwidth/drop) nếu có file
+    if link_profile_file:
+        net.load_link_profile_from_file(link_profile_file)
 
     proposer = nodes[node_ids[0]]
     proposer.broadcast_proposal()
@@ -166,4 +174,3 @@ def run_consensus_smoke_simple(
         "network_logs": net.logs(),
         "consensus_logs": consensus_log,
     }
-

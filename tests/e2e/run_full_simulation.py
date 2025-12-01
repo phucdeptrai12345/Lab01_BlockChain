@@ -17,7 +17,7 @@ import hashlib
 import json
 import os
 import sys
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Set, Optional
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, ROOT)
@@ -155,7 +155,13 @@ def build_block(height: int, parent_hash: str, proposer: str) -> Dict[str, Any]:
     return header
 
 
-def run_full_sim(num_nodes: int = 4, num_blocks: int = 3, seed: int = 2025):
+def run_full_sim(
+    num_nodes: int = 4,
+    num_blocks: int = 3,
+    seed: int = 2025,
+    topology_file: Optional[str] = None,
+    link_profile_file: Optional[str] = None,
+):
     cfg = NetworkConfig(
         base_delay_ms=5,
         jitter_ms=0,
@@ -174,9 +180,14 @@ def run_full_sim(num_nodes: int = 4, num_blocks: int = 3, seed: int = 2025):
         peers = [p for p in node_ids if p != nid]
         nodes[nid] = FullNode(nid, peers, net, chain_id="chain-demo")
 
-    # fully connected
-    edges = [(a, b) for a in node_ids for b in node_ids if a != b]
-    net.load_topology(edges)
+    # Topology: nếu cung cấp file thì nạp; ngược lại full-mesh
+    if topology_file:
+        net.load_topology_from_file(topology_file)
+    else:
+        edges = [(a, b) for a in node_ids for b in node_ids if a != b]
+        net.load_topology(edges)
+    if link_profile_file:
+        net.load_link_profile_from_file(link_profile_file)
 
     parent_hash = "0" * 64
     blocks_for_height: Dict[int, Dict[str, Any]] = {}
